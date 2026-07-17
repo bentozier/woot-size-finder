@@ -10,6 +10,7 @@ attributes plus live SoldOut/Quantity — which is exactly the "what's
 available in my size" data this tool needs. No HTML scraping required.
 """
 import re
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -234,14 +235,19 @@ def fetch_all_variants():
 
 
 _cache = {"variants": [], "fetched_at": 0}
+_cache_lock = threading.Lock()
 
 
 def get_variants(force=False):
-    stale = (time.time() - _cache["fetched_at"]) > CACHE_TTL_SECONDS
-    if force or stale or not _cache["variants"]:
-        _cache["variants"] = fetch_all_variants()
-        _cache["fetched_at"] = time.time()
-    return _cache["variants"]
+    # Locked so concurrent requests during a cold cache don't each kick off
+    # their own full scrape (which is what blew past gunicorn's request
+    # timeout in production — see warm_cache_in_background below).
+    with _cache_lock:
+        stale = (time.time() - _cache["fetched_at"]) > CACHE_TTL_SECONDS
+        if force or stale or not _cache["variants"]:
+            _cache["variants"] = fetch_all_variants()
+            _cache["fetched_at"] = time.time()
+        return _cache["variants"]
 
 
 def compute_facets(variants, gender, garment_type, size):
@@ -265,6 +271,12 @@ def compute_facets(variants, gender, garment_type, size):
 
 
 app = Flask(__name__)
+
+# Scrape once in the background as soon as the process boots, instead of
+# blocking whichever request happens to arrive first. Covering three
+# categories takes long enough (~15-20s) that leaving it to a request
+# handler risks tripping the WSGI server's request timeout.
+threading.Thread(target=get_variants, daemon=True).start()
 
 
 @app.route("/api/deals")
