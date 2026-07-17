@@ -27,9 +27,10 @@ HEADERS = {
 # Woot's internal category keys that carry apparel/shoes today:
 #   sport  = "Sports & Outdoors" (Men's/Women's/Kids' apparel & shoe subcategories)
 #   home   = "Home & Kitchen" (Baby/Boys'/Girls' Apparel live in here, mixed in with furniture etc.)
-#   shirt  = the print-on-demand tee business (shirt.woot.com) — always-in-stock, sizes
-#            encoded as "Men's Small" / "Women's Large" instead of a separate Gender attribute.
-CATEGORIES = ["sport", "home", "shirt"]
+# "shirt" (the print-on-demand tee business) is deliberately excluded — its
+# handful of designs come in every size/color combo at effectively infinite
+# stock, so it drowns out real deals rather than adding useful variety.
+CATEGORIES = ["sport", "home"]
 PAGE_SIZE = 50
 MAX_WORKERS = 6
 CACHE_TTL_SECONDS = 15 * 60
@@ -162,9 +163,7 @@ def offer_to_variants(offer, category):
     title = offer["Title"]
     hostname = offer["Site"]["Hostname"]
     url = f"https://{hostname}/offers/{offer['Slug']}"
-    # The whole "shirt" category is printed tees; title keywords don't
-    # reliably say so (deal titles are jokes, e.g. "The Scientific Meepthod").
-    garment_type = "Tops" if category == "shirt" else classify_garment(title)
+    garment_type = classify_garment(title)
 
     # "Home & Kitchen" is mostly non-apparel (perfume, jewelry, bath towels),
     # some of which still carry both a Size and a Gender-ish attribute
@@ -387,7 +386,7 @@ INDEX_HTML = """
   <div class="container">
     <header>
       <h1>Woot Size Finder</h1>
-      <p class="sub">Live scrape of Woot's apparel &amp; shoe deals (Sports &amp; Outdoors, Home &amp; Kitchen, and the Shirt tee shop), filtered to sizes currently in stock.</p>
+      <p class="sub">Live scrape of Woot's apparel &amp; shoe deals (Sports &amp; Outdoors and Home &amp; Kitchen), filtered to sizes currently in stock.</p>
     </header>
 
     <div class="filter-bar">

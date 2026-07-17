@@ -1,7 +1,9 @@
 # Woot Size Finder
 
-Filter Woot's Sports & Outdoors deals (apparel + shoes) by gender, garment type, and size —
-only showing sizes that are actually in stock right now.
+Filter Woot's apparel and shoe deals (Sports & Outdoors, plus the Baby/Boys'/Girls' Apparel
+subcategories buried in Home & Kitchen) by gender, garment type, and size — only showing sizes
+that are actually in stock right now. Filters are faceted: picking a type narrows the size
+options down to sizes that actually exist for that type, and vice versa.
 
 ## How it works
 
@@ -27,13 +29,20 @@ Then open http://localhost:5050.
 Includes a `render.yaml` for one-click deploy on [Render](https://render.com)'s free tier:
 push this repo to GitHub, then create a new Blueprint on Render pointing at it.
 
-The `Procfile` (`gunicorn app:app`) also works on most other Python PaaS hosts (Railway,
-Fly.io, Heroku-compatible platforms, etc.).
+The `Procfile` (`gunicorn app:app --workers 1 --timeout 120`) also works on most other Python
+PaaS hosts (Railway, Fly.io, Heroku-compatible platforms, etc.). The long timeout matters: a
+full scrape across categories takes 15-20s, longer than gunicorn's default 30s budget leaves
+much room for. The app also warms its cache in a background thread on boot so that scrape
+doesn't block the process from binding its port or answering the first real request.
 
 ## Known limitations
 
-- Only covers the "Sports & Outdoors" category, which is where Woot files its apparel/shoe
-  subcategories today — worth double-checking if that changes.
+- Covers the "Sports & Outdoors" and "Home & Kitchen" categories, which is where Woot files
+  its apparel/shoe subcategories today — worth double-checking if that changes. The
+  print-on-demand "Shirt" tee shop (shirt.woot.com) is deliberately excluded: its handful of
+  designs come in every size/color at effectively infinite stock, which drowned out real deals.
 - Garment type (Tops/Pants/Shoes/...) is guessed from the title since Woot doesn't tag it.
-- Data is cached in memory for 15 minutes and refetched fully on cold start (~12 API calls),
-  so the first request after a deploy or restart takes a few seconds.
+  For the Home & Kitchen category specifically, items that don't match a known garment
+  keyword are dropped entirely rather than shown as "Other" — otherwise perfume, jewelry, and
+  watches leak in, since those also carry Size + Gender-ish attributes.
+- Data is cached in memory for 15 minutes and refetched fully on cold start.
