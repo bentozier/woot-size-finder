@@ -18,7 +18,7 @@ import requests
 from flask import Flask, jsonify, render_template_string, request
 
 GRAPHQL_URL = "https://d24qg5zsx8xdc4.cloudfront.net/graphql"
-API_KEY = "da2-hk2jpo7aljfvxollvmieghuqlu"
+API_KEY = "da2-gdf6f2cxpnb3xikqgzzhfhovem"
 HEADERS = {
     "x-api-key": API_KEY,
     "User-Agent": "Mozilla/5.0 (compatible; WootSizeFinder/1.0)",
